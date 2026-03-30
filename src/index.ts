@@ -1,8 +1,11 @@
+import fs from "fs";
 import express, { type Request, type Response } from "express";
 import cookieParser from "cookie-parser";
 
 // importing middleware packages
 import helmet from "helmet";
+import morgan from "morgan";
+import cors from "cors";
 
 // importing middleware
 import { logger } from "./middleware/logger";
@@ -22,6 +25,7 @@ import { cookieAuth, jwtAuth } from "./middleware/auth";
 // initializing express app
 const app = express();
 const PORT = process.env.PORT || 8000;
+const stream = fs.createWriteStream("./logs/access.log", { flags: 'a' })
 
 // connect to database
 connectDB();
@@ -29,12 +33,14 @@ connectDB();
 
 // using middleware
 app.use(helmet());
-
-app.use(timeLogger);
-app.use(logger);
+app.use(morgan("combined", { stream }));
+app.use(cors({
+    origin: ["http://localhost:3000", "http://localhost:5173"],
+    methods: ["GET"],
+    credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser());
-
 
 
 // routes
