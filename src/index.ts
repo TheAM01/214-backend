@@ -6,10 +6,8 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import morgan from "morgan";
 import cors from "cors";
+import multer from "multer";
 
-// importing middleware
-import { logger } from "./middleware/logger";
-import { timeLogger } from "./middleware/timeLogger";
 
 // importing routers
 import { usersRouter } from "./routers/users/users.router";
@@ -26,7 +24,15 @@ import { cookieAuth, jwtAuth } from "./middleware/auth";
 const app = express();
 const PORT = process.env.PORT || 8000;
 const stream = fs.createWriteStream("./logs/access.log", { flags: 'a' })
-
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, "uploads/")
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + "-" + file.originalname)
+    }
+});
+const upload = multer({ storage });
 // connect to database
 connectDB();
 
@@ -68,7 +74,6 @@ app.get("/clear-cookies", (req: Request, res: Response) => {
 });
 
 
-
 app.get("/protected", jwtAuth, (req: Request, res: Response) => {
     if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -76,6 +81,19 @@ app.get("/protected", jwtAuth, (req: Request, res: Response) => {
 
     res.json({ message: "Protected route", user: req.user });
 });
+
+// <input type="file" name="display-avatar">
+
+app.post("/upload", upload.single("display-avatar"), (req: Request, res: Response) => {
+    if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded!" });
+    }
+
+    return res.json({
+        message: "File uploaded successfully!",
+        file: req.file,
+    })
+})
 
 
 // using routers
